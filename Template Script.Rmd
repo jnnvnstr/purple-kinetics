@@ -1,0 +1,393 @@
+---
+title: "Example Dataset for purple-kinetics"
+author: "Jenna Veenstra"
+date: "July 5, 2024"
+output: html_document
+---
+Functions:
+```{r}
+#Sets the working directory to the folder of your choice (set up for my folder organization)
+setwd(paste0("G:/My Drive/Stuff From Computer/All Encompassing Michigan Folder/Lab Work/Thesis/Chapter Four-Bioinformatics/"))
+
+#brings in the functions from 'Kinetic Graphing Functions.R'
+source("Kinetic Graphing Functions.R")
+```
+
+--------------Active Site Titration Example--------------------  
+Reading in Data
+```{r}
+#vector of the file names of the ImageQuant output
+files <- c("AST_WT_Data.txt", "AST_R305Q_Data.txt", "AST_R641S_Data.txt")
+#My data files are organized in the folders below, so pasting those names to the filenames
+files <- paste0("AST/Datasets/", files)
+
+##Reading in the my_data (date_index is the folder depth of the files so 2 in this case given Datasets folder)
+
+#Initializing dim_table to be filled as reading_in_data() is called
+dim_table <- data.frame(file_rows = c(0), cuml_rows = c(0), files_name = "")
+#Assigning the output of reading_in_data() to AST_data and applying it through each file provided
+AST_Data <- list.rbind(lapply(files, reading_in_data, date_index = 3))
+
+##Prepping the organization
+  #based on where the wanted samples are on the gels cumulatively
+  #rep 1 of each (protein), rep 2 of each, ... 
+indices_wanted <- c(1:12,89:102,161:171,
+                    13:24,103:116,172:182,
+                    25:34,117:130,183:193,
+                    35:44,131:140,194:204,
+                    45:55,141:150,205:215,
+                    56:66,151:160,216:226,
+                    67:77, 227:237,
+                    78:88)
+  #vector of proteins tested
+proteins <- c("WT", "R305Q", "R641S")
+  #number of reps for each protein respectively
+number_reps <- c(8, 6, 7)
+
+
+##Overall organization: each element of the list is for each rep (max of 8 replicates). Within each list, each element is for each protein respectively
+num_rxns_per_rep <- list(c(12,14,11), c(12,14,11), c(10,14,11), c(10,10,11), c(11,10,11), c(11,10,11), c(11,0,11), c(11,0,0))
+num_time_pts_each <- list(c(1,1,1), c(1,1,1), c(1,1,1), c(1,1,1), c(1,1,1), c(1,1,1), c(1,0,1), c(1,0,0))
+
+  #Create list of timepoints: 1 element for each protein, every timepoint for each reaction is required
+  #Create the max number of reps of these lists then combine all into list
+tm_pts_rep_1 <- list(c(rep(60,12)), c(rep(60,14)), c(rep(60,11)))
+tm_pts_rep_2 <- tm_pts_rep_1
+tm_pts_rep_3 <- list(c(rep(60,10)), c(rep(60,14)), c(rep(60,11)))
+tm_pts_rep_4 <- list(c(rep(60,10)), c(rep(60,10)), c(rep(60,11)))
+tm_pts_rep_5 <- list(c(rep(60,11)), c(rep(60,10)), c(rep(60,11)))
+tm_pts_rep_6 <- tm_pts_rep_5
+tm_pts_rep_7 <- list(c(rep(60,11)), c(), c(rep(60,11)))
+tm_pts_rep_8 <- list(c(rep(60,11)), c(), c())
+
+time_points <- list(tm_pts_rep_1,tm_pts_rep_2,tm_pts_rep_3,tm_pts_rep_4,tm_pts_rep_5,tm_pts_rep_6,tm_pts_rep_7,tm_pts_rep_8)
+
+  #same format as timepoints except one concentration for each reaction (not each timepoint)
+Enz_1 <- list(c(0,20,40,60,80,100,125,150,175,200,250,300), c(0,25,50,75,100,125,150,175,200,225,250,275,300,325), c(0,25,50,75,100,150,175,200,225,250,300))
+Enz_2 <- list(c(0,20,40,60,80,100,125,150,175,200,250,300), c(0,25,50,75,100,125,150,175,200,225,250,275,300,325), c(0,25,50,75,100,150,175,200,225,250,300))
+Enz_3 <- list(c(0,25,50,75,100,150,200,225,250,300), c(0,25,50,75,100,125,150,175,200,225,250,275,300,325), c(0,25,50,75,100,150,175,200,225,250,300))
+Enz_4 <- list(c(0,25,50,75,100,150,200,225,250,300), c(32,64,96,127,159,191,223,255,287,318), c(0,25,50,75,100,150,175,200,225,250,300))
+Enz_5 <- list(c(25,50,75,100,125,150,175,200,225,250,300), c(32,64,96,127,159,191,223,255,287,318), c(0,25,50,75,100,150,175,200,225,250,300))
+Enz_6 <- list(c(25,50,75,100,125,150,175,200,225,250,300), c(32,64,96,127,159,191,223,255,287,318), c(0,25,50,75,100,150,175,200,225,250,300))
+Enz_7 <- list(c(25,50,75,100,125,150,175,200,225,250,300), c(), c(0,25,50,75,100,150,175,200,225,250,300))
+Enz_8 <- list(c(25,50,75,100,125,150,175,200,225,250,300), c(), c())
+
+Enz_Conc <- list(Enz_1,Enz_2,Enz_3,Enz_4,Enz_5,Enz_6,Enz_7,Enz_8)
+
+  #same format as above
+DNA_1 <- list(c(rep(150,12)), c(rep(150,14)), c(rep(150,11)))
+DNA_2 <- DNA_1
+DNA_3 <- list(c(rep(150,10)), c(rep(150,14)), c(rep(150,11)))
+DNA_4 <- list(c(rep(150,10)), c(rep(150,10)), c(rep(150,11)))
+DNA_5 <- list(c(rep(150,11)), c(rep(150,10)), c(rep(150,11)))
+DNA_6 <- DNA_5
+DNA_7 <- list(c(rep(150,11)), c(), c(rep(150,11)))
+DNA_8 <- list(c(rep(150,11)), c(), c())
+
+DNA_Conc <- list(DNA_1,DNA_2,DNA_3,DNA_4,DNA_5,DNA_6,DNA_7,DNA_8)
+
+  #same format as above
+Mg_1 <- list(c(rep(20,12)), c(rep(20,14)), c(rep(20,11)))
+Mg_2 <- Mg_1
+Mg_3 <- list(c(rep(20,10)), c(rep(20,14)), c(rep(20,11)))
+Mg_4 <- list(c(rep(20,10)), c(rep(20,10)), c(rep(20,11)))
+Mg_5 <- list(c(rep(20,11)), c(rep(20,10)), c(rep(20,11)))
+Mg_6 <- Mg_5
+Mg_7 <- list(c(rep(20,11)), c(), c(rep(20,11)))
+Mg_8 <- list(c(rep(20,11)), c(), c())
+
+Mg_Conc <- list(Mg_1,Mg_2,Mg_3,Mg_4,Mg_5,Mg_6,Mg_7,Mg_8)
+
+  #same format as above
+ATP_1 <- list(c(rep(0,12)), c(rep(0,14)), c(rep(0,11)))
+ATP_2 <- ATP_1
+ATP_3 <- list(c(rep(0,10)), c(rep(0,14)), c(rep(0,11)))
+ATP_4 <- list(c(rep(0,10)), c(rep(0,10)), c(rep(0,11)))
+ATP_5 <- list(c(rep(0,11)), c(rep(0,10)), c(rep(0,11)))
+ATP_6 <- ATP_5
+ATP_7 <- list(c(rep(0,11)), c(), c(rep(0,11)))
+ATP_8 <- list(c(rep(0,11)), c(), c())
+
+ATP_Conc <- list(ATP_1,ATP_2,ATP_3,ATP_4,ATP_5,ATP_6,ATP_7,ATP_8)
+
+#Organizing all the my_data into one data frame
+AST_Data <- organizing_data(AST_Data, indices_wanted, experiment = "AST", proteins, number_reps, num_rxns_per_rep, num_time_pts_each, time_points, Enz_Conc, DNA_Conc, Mg_Conc, ATP_Conc)
+```
+
+Editing Data Frame:
+```{r}
+#adding (0,0) point where needed (go in rep order)
+  #some replicates had no enzyme controls, some didn't so adding a (0,0) point when they didn't
+index <- c(which(AST_Data$replicate == 4 & AST_Data$protein == "R305Q")[1], 
+           which(AST_Data$replicate == 5 & AST_Data$protein == "WT")[1], 
+           which(AST_Data$replicate == 5 & AST_Data$protein == "R305Q")[1], 
+           which(AST_Data$replicate == 6 & AST_Data$protein == "WT")[1], 
+           which(AST_Data$replicate == 6 & AST_Data$protein == "R305Q")[1],
+           which(AST_Data$replicate == 7 & AST_Data$protein == "WT")[1], 
+           which(AST_Data$replicate == 8 & AST_Data$protein == "WT")[1])
+
+for (i in 1:length(index)){
+  index[i] <- index[i] + (i-1)
+}
+
+for (i in index){
+  AST_Data <- InsertRow(AST_Data, c(rep(0,3),AST_Data[i,(3+1):dim(AST_Data)[2]]), i)
+  AST_Data$Enz_Conc[i] <- 0
+}
+
+```
+
+
+Analyze the Data
+```{r}
+date = "7-5-2024" #I typically organize the graphs into a folder with the date
+#Each protein being analyzed
+proteins <- c("WT", "R305Q", "R641S")
+
+#If I need to manually remove any points, their indices go in the repective element
+points_to_removes <- list("WT" = c(), "R305Q" = c(), "R641S" = c())
+
+#initializes a list for the sets of replicates being averaged (longer than needed)
+list_of_points_to_remove <- vector(mode = "list", length = 100)
+#List of the sets of replicates being averages (currently one set containing all replicates)
+avg_groupings <- list(c(1:max(AST_Data$replicate)))
+#Points to remove for the average if needed
+list_of_points_to_remove[[1]] <- c(0)
+
+#Looping through each protein using no filter and not removing outliers
+for (prot in proteins){
+  #Create a dataset with just the data for the 'prot' protein
+  df <- AST_Data[which(AST_Data$protein == prot),]
+  #Call the Graphing_Kinetic_Experiments() function with all the arguments below
+  Graphing_Kinetic_Experiments(my_data = df, x = "Enz_Conc", y = "prod_frac", adj_y = "adj_prod_frac", points_to_remove = points_to_removes[prot], graph_title = paste0("AST: LIG1 ", prot), y_title = "Fraction Product", x_title = "Enzyme Concenctration (nM)", num_reps = max(df$replicate), y_lim = 1, y_by = 0.1, x_lim = 325, x_by = 25, base_file_name = "", base_folder_name = paste0(date, "/AST/", "No filter/", prot, "/"), V_over_E_file_name = "", avg_groupings = avg_groupings, substrate = "DNA_Conc", substrate_name = "DNA", replace_files = F, time_units_factor = 60, exp = "AST", data_frame_name = paste0("AST_", prot), filter = 0, rm_outliers = F)
+}
+
+#Looping through each protein using an endpoint filter of 0.5 and not removing outliers
+for (prot in proteins){
+  df <- AST_Data[which(AST_Data$protein == prot),]
+  Graphing_Kinetic_Experiments(my_data = df, x = "Enz_Conc", y = "prod_frac", adj_y = "adj_prod_frac", points_to_remove = points_to_remove, graph_title = paste0("AST: LIG1 ", prot), y_title = "Fraction Product", x_title = "Enzyme Concenctration (nM)", num_reps = max(df$replicate), y_lim = 1, y_by = 0.1, x_lim = 325, x_by = 25, base_file_name = "", base_folder_name = paste0(date, "/AST/No outliers/", prot, "/"), V_over_E_file_name = "", avg_groupings = avg_groupings, substrate = "DNA_Conc", substrate_name = "DNA", replace_files = F, time_units_factor = 60, exp = "AST", data_frame_name = paste0("AST_", prot), filter = 0.5, rm_outliers = F)
+}
+
+#Looping through each protein using endpoint filter of 0.5 and removing outliers
+for (prot in proteins){
+  df <- AST_Data[which(AST_Data$protein == prot),]
+  Graphing_Kinetic_Experiments(my_data = df, x = "Enz_Conc", y = "prod_frac", adj_y = "adj_prod_frac", points_to_remove = points_to_remove, graph_title = paste0("AST: LIG1 ", prot), y_title = "Fraction Product", x_title = "Enzyme Concenctration (nM)", num_reps = max(df$replicate), y_lim = 1, y_by = 0.1, x_lim = 325, x_by = 25, base_file_name = "", base_folder_name = paste0(date, "/AST/All/", prot, "/"), V_over_E_file_name = "", avg_groupings = avg_groupings, substrate = "DNA_Conc", substrate_name = "DNA", replace_files = F, time_units_factor = 60, exp = "AST", data_frame_name = paste0("AST_", prot), filter = 0.5, rm_outliers = T, z_threshold = 1.5)
+}
+```
+
+----------------Substrate Dependency Example with multiple substrates and proteins---------------------------
+      
+Reading in Data: Low Mg DNA Dep and ATP Dep for WT and R305Q
+```{r}
+files <- c("DNA_WT.txt", "DNA_R305Q.txt", "WT_ATP_6_16_2022.txt", "WT_ATP_6_22_2022.txt", "R305Q_ATP_6_16_2022.txt", "R305Q_ATP_6_22_2022.txt")
+
+files <- paste0("Substrate Dependency/Datasets/", files)
+##Reading in the my_data
+dim_table <- data.frame(file_rows = c(0), cuml_rows = c(0), files_name = "")
+Dep_data <- list.rbind(lapply(files, reading_in_data, date_index = 3))
+
+##Prepping the organization
+  #based on where the wanted samples are on the gels cumulatively
+  #rep 1 of each, rep 2 of each, ...
+indices_wanted <- c(1:35,351:378,519:550,647:678, ##rep1 DNA_WT, rep1 DNA_R305Q, rep1 ATP_WT, rep1 ATP_R305Q
+  36:70,379:406,551:582,679:710,
+  71:102,407:434,583:614,711:742,
+  103:134,435:462,615:646,743:774,
+  135:170,463:490,
+  171:206,491:518,
+  207:238,
+  239:270,
+  271:310,
+  311:350
+)
+proteins <- c("WT", "R305Q")
+substrates <- c("DNA", "ATP")
+  #list elements are per substrate, vector elements are per protein
+number_reps <- list(c(10,6), c(4,4))
+
+#first list is per substrate, second list is per rep, vector is per protein
+  #i.e. list(list(c(rep1WTDNA,rep1R305QDNA),c(rep2WTDNA,rep2R305QDNA)), list(c(rep1WTATP,rep1R305QATP),c(rep2WTATP,rep2R305QATP)))
+  #the inner lists have to be symmetrical
+##If you're only doing one type of dependency, one layer is taken away:
+  #number_reps is list with one vector
+  #below is list of reps with each protein in vector
+num_rxns_per_rep <- list(list(c(7,7), c(7,7), c(8,7), c(8,7), c(9,7), c(9,7), c(8,0), c(8,0), c(10,0), c(10,0)), list(c(8,8), c(8,8), c(8,8), c(8,8), c(0,0), c(0,0), c(0,0), c(0,0), c(0,0), c(0,0)))
+num_time_pts_each <- list(list(c(5,4), c(5,4), c(4,4), c(4,4), c(4,4), c(4,4), c(4,0), c(4,0), c(4,0), c(4,0)), list(c(4,4), c(4,4), c(4,4), c(4,4), c(0,0), c(0,0), c(0,0), c(0,0), c(0,0), c(0,0)))
+
+#first list is per substrate, second list is per protein, vector is per time point/reaction
+tm_pts_rep_1 <- list(list(c(rep(c(0.25,0.5,0.75,1,1.5), 7)), c(rep(c(0.5,1,1.5,2),7))), 
+                     list(c(rep(c(2,4,6,8),2),rep(c(1,2,3,4),2),rep(c(0.5,1,1.5,2),4)), c(rep(c(2,4,6,8),2),rep(c(1,2,3,4),2),rep(c(0.5,1,1.5,2),4))))
+tm_pts_rep_2 <- tm_pts_rep_1
+tm_pts_rep_3 <- list(list(c(rep(c(0.5,1,1.5,2), 8)), c(rep(c(0.5,1,1.5,2),2),rep(c(1,2,3,4),3),2,4,6,8,4,8,12,16)), 
+                     list(c(2,4,6,8,rep(c(1,2,3,4),2),rep(c(0.5,1,1.5,2),5)), c(2,4,6,8,rep(c(1,2,3,4),2),rep(c(0.5,1,1.5,2),5))))
+tm_pts_rep_4 <- list(list(c(rep(c(0.5,1,1.5,2), 8)), c(rep(c(0.5,1,1.5,2),2),rep(c(1,2,3,4),3),2,4,6,8,4,8,12,16)), 
+                     list(c(2,4,6,8,rep(c(1,2,3,4),2),rep(c(0.5,1,1.5,2),5)), c(2,4,6.25,8,rep(c(1,2,3,4),2),rep(c(0.5,1,1.5,2),5))))
+tm_pts_rep_5 <- list(list(c(rep(c(0.25,0.5,0.75,1),3),rep(c(0.5,1,1.5,2),2),rep(c(1,2,3,4),2),rep(c(2,4,6,8),2)), c(rep(c(0.5,1,1.5,2),7))), 
+                     list(c(), c()))
+tm_pts_rep_6 <- tm_pts_rep_5
+tm_pts_rep_7 <- list(list(c(rep(c(0.167,0.333,0.5,0.667),3),0.25,0.5,0.75,1,0.5,0.75,0.88,1,0.5,1,1.5,2,1,2,3,4,2,4,6,8), c()), 
+                     list(c(), c()))
+tm_pts_rep_8 <- list(list(c(rep(c(0.167,0.333,0.5,0.667),3),rep(c(0.25,0.5,0.75,1),2),0.5,1,1.5,2,1,2,3,4,2,4,6,8), c()), 
+                     list(c(), c()))
+tm_pts_rep_9 <- list(list(c(rep(c(0.167,0.333,0.5,0.667),3),rep(c(0.25,0.5,0.75,1),2),0.5,1,1.5,2,1,2,3,4,rep(c(2,4,6,8),3)), c()), 
+                     list(c(), c()))
+tm_pts_rep_10 <- tm_pts_rep_9
+
+##Taking above and making list of reps
+time_points <- list(tm_pts_rep_1,tm_pts_rep_2,tm_pts_rep_3,tm_pts_rep_4,tm_pts_rep_5,tm_pts_rep_6,tm_pts_rep_7,tm_pts_rep_8,tm_pts_rep_9,tm_pts_rep_10)
+
+  #same format as timepoints except only one values per reaction, not per timepoint
+Enz_1 <- list(list(c(rep(5,7)),c(rep(2.5,7))), 
+              list(c(rep(5,8)),c(rep(5,8))))
+Enz_2 <- Enz_1
+Enz_3 <- list(list(c(rep(0.2,4),0.5,1,2.5,5),c(rep(5,7))), 
+              list(c(rep(5,8)),c(rep(5,8))))
+Enz_4 <- Enz_3
+Enz_5 <- list(list(c(rep(0.5,9)),c(rep(5,7))), 
+              list(c(),c()))
+Enz_6 <- Enz_5
+Enz_7 <- list(list(c(rep(0.5,8)),c()), 
+              list(c(),c()))
+Enz_8 <- Enz_7
+Enz_9 <- list(list(c(rep(0.5,10)),c()), 
+              list(c(),c()))
+Enz_10 <- Enz_9
+
+Enz_Conc <- list(Enz_1,Enz_2,Enz_3,Enz_4,Enz_5,Enz_6,Enz_7,Enz_8,Enz_9,Enz_10)
+
+  #same format as above
+DNA_1 <- list(list(c(25,50,100,250,500,1000,2000),c(25,50,100,250,500,1000,2000)), 
+              list(c(rep(1000,8)),c(rep(1000,8))))
+DNA_2 <- DNA_1
+DNA_3 <- list(list(c(25,50,75,100,250,500,1000,2000),c(25,50,100,250,500,1000,2000)), 
+              list(c(rep(1000,8)),c(rep(1000,8))))
+DNA_4 <- DNA_3
+DNA_5 <- list(list(c(20,40,60,80,100,250,500,1000,2000),c(25,50,100,250,500,1000,2000)), 
+              list(c(),c()))
+DNA_6 <- DNA_5
+DNA_7 <- list(list(c(10,20,30,40,50,100,250,500),c()), 
+              list(c(),c()))
+DNA_8 <- DNA_7
+DNA_9 <- list(list(c(10,20,30,40,50,100,250,500,1000,2000),c()), 
+              list(c(),c()))
+DNA_10 <- DNA_9
+
+DNA_Conc <- list(DNA_1,DNA_2,DNA_3,DNA_4,DNA_5,DNA_6,DNA_7,DNA_8,DNA_9,DNA_10)
+
+  #same format as above
+Mg_1 <- list(list(c(rep(1,7)),c(rep(1,7))), 
+              list(c(rep(20,8)),c(rep(20,8))))
+Mg_2 <- Mg_1
+Mg_3 <- list(list(c(rep(1,8)),c(rep(1,7))), 
+              list(c(rep(5,8)),c(rep(20,8))))
+Mg_4 <- Mg_3
+Mg_5 <- list(list(c(rep(1,9)),c(rep(1,7))), 
+              list(c(),c()))
+Mg_6 <- Mg_5
+Mg_7 <- list(list(c(rep(1,8)),c()), 
+              list(c(),c()))
+Mg_8 <- Mg_7
+Mg_9 <- list(list(c(rep(1,10)),c()), 
+              list(c(),c()))
+Mg_10 <- Mg_9
+
+Mg_Conc <- list(Mg_1,Mg_2,Mg_3,Mg_4,Mg_5,Mg_6,Mg_7,Mg_8,Mg_9,Mg_10)
+
+  #same format as above
+ATP_1 <- list(list(c(rep(200,7)),c(rep(200,7))), 
+              list(c(1,2.5,5,10,25,50,100,200),c(1,2.5,5,10,25,50,100,200)))
+ATP_2 <- ATP_1
+ATP_3 <- list(list(c(rep(200,8)),c(rep(200,7))), 
+              list(c(1,2.5,5,10,25,50,100,200),c(1,2.5,5,10,25,50,100,200)))
+ATP_4 <- ATP_3
+ATP_5 <- list(list(c(rep(200,9)),c(rep(200,7))), 
+              list(c(),c()))
+ATP_6 <- ATP_5
+ATP_7 <- list(list(c(rep(200,8)),c()), 
+              list(c(),c()))
+ATP_8 <- ATP_7
+ATP_9 <- list(list(c(rep(200,10)),c()), 
+              list(c(),c()))
+ATP_10 <- ATP_9
+
+ATP_Conc <- list(ATP_1,ATP_2,ATP_3,ATP_4,ATP_5,ATP_6,ATP_7,ATP_8,ATP_9,ATP_10)
+
+#Organizing all the my_data into one my_data frame
+Dep_data <- organizing_data(Dep_data, indices_wanted, experiment = "MTO_sub_dep_mult_sub", proteins, number_reps, num_rxns_per_rep, num_time_pts_each, time_points, Enz_Conc, DNA_Conc, Mg_Conc, ATP_Conc, substrates = substrates, mult = TRUE)
+```
+
+Analyze the Data: 
+```{r}
+date <- "7-5-2024"
+proteins <- c("WT", "R305Q")
+substrates <- c("DNA", "ATP")
+points_to_removes <- list("DNA" = list("WT" = c(), "R305Q" = c()), "ATP" = list("WT1" = c(), "R305Q" = c()))
+
+for (sub in substrates) {
+  for (prot in proteins){
+    sub_units <- NA
+    if (sub == "ATP"){
+      sub_units <- "(uM)"
+    } else {
+      if (sub == "DNA"){
+        sub_units <- "(nM)"
+      } else {
+        if (sub == "Mg") {
+          sub_units <- "(mM)"
+        } 
+      }
+    }
+    
+    df <- Dep_data[which(Dep_data$protein == prot & Dep_data$Substrate == sub),]
+    max_rep <- max(df$replicate)
+    
+    x = "time_points"
+    y = "prod_frac"
+    adj_y = "adj_prod_frac"     #setting up variable name for the values kept in fits while y has all original values
+    points_to_remove <- points_to_removes[[sub]][[prot]]
+    time_units_factor <- 60
+    graph_title <- paste0(sub, " Dependency: ", prot)
+    y_title <- "Fraction Product"
+    x_title <- "Time (min)"
+    num_reps <- max(df$replicate)
+    y_lim <- NA                   #lims and bys can be set manually (see x_by) or set to NA where the function 
+    y_by <- NA                    #will determine a good scale and apply it to all timecourses
+    x_lim <- NA
+    x_by <- 0.5
+    base_file_name <- paste0(sub, "_dep_")
+    substrate <- paste0(sub, "_Conc")
+    substrate_name <- paste(sub, sub_units)
+    avg_groupings <- list(c(1:max_rep))
+    exp <- "MTO_sub_dep"
+    data_frame_name <- paste0(sub, "_", prot) #default is ""
+    #replace_files <- F #default
+    #filter = 0.5 #default
+    #z_threshold = 3 #default
+    #y_low <- 0 #default
+    #V_over_E_file_name = base_file_name #default
+    #rm_outliers = T #default 
+    list_of_points_to_remove <- vector(mode = "list", length = length(avg_groupings))
+    rm_out <- c(F, F, T)
+    filt <- c(1, 0.2, 0.2)
+    
+    for (i in 1:3){
+      rm_outliers <- rm_out[i]
+      filter <- filt[i]
+      if(i == 1){
+        base_folder_name <- paste0(date, "/Substrate Dependency/No filter/", sub, "_dep/", prot, "/")
+        
+      }
+      if(i == 2){
+        base_folder_name <- paste0(date, "/Substrate Dependency/No outliers/", sub, "_dep/", prot, "/")
+      }
+      if(i == 3){
+        base_folder_name <- paste0(date, "/Substrate Dependency/All/", sub, "_dep/", prot, "/")
+      }
+      Graphing_Kinetic_Experiments(my_data = df, x, y, adj_y, points_to_remove, time_units_factor, graph_title, y_title, x_title, num_reps, y_lim, y_by, x_lim, x_by, base_file_name, base_folder_name, substrate, substrate_name, avg_groupings, exp, data_frame_name, filter = filter, replace_files = T, z_threshold = 1.75, rm_outliers = rm_outliers)
+    }
+  }
+}
+
+```
+
+
